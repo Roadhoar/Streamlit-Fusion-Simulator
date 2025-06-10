@@ -1,19 +1,6 @@
 import streamlit as st
 import numpy as np
-
-# --- Paywall Library Import ---
-# This import path 'from st_paywall import paywall' is a common pattern for Streamlit components.
-# If this causes an ImportError, please consult the official 'st-paywall' documentation
-# for the exact correct import path and function name for your specific library version.
-try:
-    from st_paywall import paywall
-except ImportError:
-    st.error("""
-        Error: 'st-paywall' library or its 'paywall' component not found.
-        Please ensure it's installed (`pip install st-paywall`) and
-        verify the correct import path from its documentation.
-    """)
-    st.stop() # Stop the app if the paywall library cannot be imported
+import st_paywall as st_pw # Importing st_paywall with an alias for clarity
 
 # --- Define the UN-EX Calculation Function ---
 def calculate_unex_diffusion(T, B, E_harmonic, S_local, alpha_coeff, beta_coeff, gamma_coeff, delta):
@@ -60,31 +47,24 @@ def calculate_unex_diffusion(T, B, E_harmonic, S_local, alpha_coeff, beta_coeff,
 
 def main():
     # --- Stripe Paywall Integration ---
-    # This section integrates the 'st-paywall' library.
-    # It attempts to authenticate the user using Stripe keys and a product ID.
-    # IMPORTANT: These keys and product ID MUST be placed in your '.streamlit/secrets.toml' file.
-    #
-    # Example .streamlit/secrets.toml content for these keys:
-    # [stripe]
-    # publishable_key = "pk_test_51RY5SLQZSkGxrGrfL3ePtfvtIMP7idCILXoaOifyjZlFDQOL34Eha5VTHMSkMAtehHMFAQKaIYQPPAcXC9fDEsqm00pxUFe3b"
-    # secret_key = "sk_test_51RY5SLQZSkGxrGrf3Bh3UJteGkG1w9GCt3VhVVX1morWCUZHCYCaMpdysTG2Ii1lugSEBABPnuj3kboFV80AhN2l00q80jh2jQ"
-    # product_id = "price_XXXXXXXXXXXXXXXX" # REPLACE THIS WITH YOUR ACTUAL STRIPE PRICE ID
-
-    # Access secrets using st.secrets.
-    # The 'stripe' key corresponds to the [stripe] section in secrets.toml.
-    # 'publishable_key', 'api_key', 'product_id' are keys within that section.
-    # Note: 'api_key' in secrets.toml maps to 'secret_key' in the paywall.login function.
+    # This block is now ACTIVATED. It expects your Stripe secrets
+    # (publishable_key, api_key, and product_id) to be correctly
+    # configured in your .streamlit/secrets.toml file and/or
+    # in the Streamlit Cloud app's 'Secrets' dashboard setting.
     try:
-        if not paywall.login(
+        # st.secrets is the standard way to access secrets in Streamlit.
+        # It looks for .streamlit/secrets.toml or secrets configured in the cloud.
+        if not st_pw.stripe_auth(
             publishable_key=st.secrets["stripe"]["publishable_key"],
-            secret_key=st.secrets["stripe"]["api_key"], # Accessing api_key from the [stripe] section
+            secret_key=st.secrets["stripe"]["api_key"],
             product_id=st.secrets["stripe"]["product_id"]
         ):
-            # If authentication fails (user hasn't paid), display a warning and stop the app.
+            # If authentication fails, display a warning and stop the app execution.
             st.warning("Access denied. Please complete the payment to proceed to the UN-EX Fusion Simulator.")
             st.stop()
     except KeyError as e:
-        # Catch errors if a secret key is missing from secrets.toml.
+        # This error occurs if a required key (like 'publishable_key') is missing
+        # from the '[stripe]' section in your secrets.toml.
         st.error(f"Configuration Error: Missing Stripe secret in .streamlit/secrets.toml. "
                  f"Please ensure you have '[stripe]' section with '{e.args[0]}' defined. "
                  f"Consult the st-paywall documentation for exact required keys.")
@@ -93,18 +73,21 @@ def main():
         # Catch any other unexpected errors during paywall initialization.
         st.error(f"An unexpected error occurred during paywall initialization: {e}")
         st.stop()
+    # --- End Paywall Integration ---
 
-    # If the user has authenticated successfully, proceed with the main app content.
+    # If the user has authenticated successfully (or if the app is run locally
+    # without a paywall, for development), proceed with the main app content.
     st.title("UN-EX Fusion Simulator - Full Access")
     st.write("Welcome to the full UN-EX Fusion app! Access granted after successful payment.")
 
     # --- UN-EX Simulator Logic ---
     # This section contains the interactive sliders, calculations, and comparisons
-    # for the UN-EX Fusion Model.
+    # for the UN-EX Fusion Model, as per your design.
 
     st.header("1. Tunable Plasma Parameters")
 
     # Interactive sliders allow the user to adjust key plasma and model parameters.
+    # Each slider includes a 'help' tooltip for user guidance.
     T = st.slider("Plasma Temperature (T) [keV]", min_value=1.0, max_value=50.0, value=10.0, step=0.5,
                   help="Core plasma temperature. Higher temperatures generally lead to faster fusion reactions but also increased transport.")
     B = st.slider("Magnetic Field (B) [T]", min_value=0.5, max_value=20.0, value=5.0, step=0.1,
@@ -194,4 +177,3 @@ def main():
 # This ensures that the 'main' function is called when the script is executed.
 if __name__ == "__main__":
     main()
-
