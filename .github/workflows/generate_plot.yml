@@ -22,7 +22,9 @@ jobs:
         pip install matplotlib # Install the plotting library
 
     - name: Run graph generation script
-      run: python generate_comparison_graph.py # Runs your Python script
+      # Corrected path: it assumes generate_comparison_graph.py is in the root
+      # of your repository after 'actions/checkout'
+      run: python generate_comparison_graph.py
 
     - name: Upload generated graph
       uses: actions/upload-artifact@v4 # Uploads the generated image as a workflow artifact
